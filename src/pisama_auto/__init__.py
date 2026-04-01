@@ -24,7 +24,7 @@ _initialized = False
 
 def init(
     api_key: Optional[str] = None,
-    endpoint: str = "https://mao-api.fly.dev/api/v1/traces/ingest",
+    endpoint: Optional[str] = None,
     service_name: str = "pisama-auto",
     auto_patch: bool = True,
 ) -> None:
@@ -35,7 +35,8 @@ def init(
 
     Args:
         api_key: Pisama API key (ps_...). Also reads PISAMA_API_KEY env var.
-        endpoint: Pisama OTEL ingestion endpoint.
+        endpoint: Pisama OTEL ingestion endpoint. Also reads PISAMA_ENDPOINT env var.
+            If not set, traces are generated locally but not exported.
         service_name: Service name for OTEL resource.
         auto_patch: If True, automatically patch all detected libraries.
     """
@@ -46,6 +47,7 @@ def init(
 
     import os
     api_key = api_key or os.environ.get("PISAMA_API_KEY")
+    endpoint = endpoint or os.environ.get("PISAMA_ENDPOINT")
 
     if not api_key:
         logger.warning(
