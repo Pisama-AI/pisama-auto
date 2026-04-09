@@ -67,8 +67,11 @@ def _traced_create(wrapped, instance, args, kwargs) -> Any:
 
                 usage = getattr(response, "usage", None)
                 if usage:
-                    span.set_attribute("gen_ai.usage.prompt_tokens", getattr(usage, "prompt_tokens", 0))
-                    span.set_attribute("gen_ai.usage.completion_tokens", getattr(usage, "completion_tokens", 0))
+                    input_tokens = getattr(usage, "prompt_tokens", 0)
+                    output_tokens = getattr(usage, "completion_tokens", 0)
+                    span.set_attribute("gen_ai.usage.input_tokens", input_tokens)
+                    span.set_attribute("gen_ai.usage.output_tokens", output_tokens)
+                    span.set_attribute("gen_ai.usage.total_tokens", input_tokens + output_tokens)
 
             return response
 

@@ -4,11 +4,11 @@ Wraps anthropic.Anthropic.messages.create() and .stream() to emit
 OTEL spans with gen_ai.* semantic conventions.
 """
 
-import json
 import logging
 from typing import Any
 
 import wrapt
+from opentelemetry.trace import StatusCode
 
 logger = logging.getLogger("pisama_auto")
 
@@ -73,19 +73,59 @@ def _traced_create(wrapped, instance, args, kwargs) -> Any:
 
             usage = getattr(response, "usage", None)
             if usage:
-                span.set_attribute("gen_ai.usage.prompt_tokens", getattr(usage, "input_tokens", 0))
-                span.set_attribute("gen_ai.usage.completion_tokens", getattr(usage, "output_tokens", 0))
+                input_tokens = getattr(usage, "input_tokens", 0)
+                output_tokens = getattr(usage, "output_tokens", 0)
+                span.set_attribute("gen_ai.usage.input_tokens", input_tokens)
+                span.set_attribute("gen_ai.usage.output_tokens", output_tokens)
+                span.set_attribute("gen_ai.usage.total_tokens", input_tokens + output_tokens)
 
             return response
 
         except Exception as e:
             span.set_attribute("error.type", type(e).__name__)
             span.set_attribute("error.message", str(e)[:500])
-            span.set_status(
-                __import__("opentelemetry.trace", fromlist=["StatusCode"]).StatusCode.ERROR,
-                str(e)[:200],
-            )
+            span.set_status(StatusCode.ERROR, str(e)[:200])
             raise
+
+
+class _TracedStream:
+    """Wrapper that ends the OTEL span when the stream is consumed or closed."""
+
+    def __init__(self, stream, span):
+        self._stream = stream
+        self._span = span
+
+    def __enter__(self):
+        self._stream.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            result = self._stream.__exit__(exc_type, exc_val, exc_tb)
+            if exc_type:
+                self._span.set_attribute("error.type", exc_type.__name__)
+                self._span.set_status(StatusCode.ERROR, str(exc_val)[:200])
+            return result
+        finally:
+            self._span.end()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        try:
+            return next(self._stream)
+        except StopIteration:
+            self._span.end()
+            raise
+        except Exception as e:
+            self._span.set_attribute("error.type", type(e).__name__)
+            self._span.set_status(StatusCode.ERROR, str(e)[:200])
+            self._span.end()
+            raise
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
 
 
 def _traced_stream(wrapped, instance, args, kwargs) -> Any:
@@ -106,9 +146,9 @@ def _traced_stream(wrapped, instance, args, kwargs) -> Any:
 
     try:
         result = wrapped(*args, **kwargs)
-        # Stream result will be consumed by the caller; span ends when context exits
-        return result
+        return _TracedStream(result, span)
     except Exception as e:
         span.set_attribute("error.type", type(e).__name__)
+        span.set_status(StatusCode.ERROR, str(e)[:200])
         span.end()
         raise
