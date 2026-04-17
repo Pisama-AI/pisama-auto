@@ -34,7 +34,7 @@ response = client.messages.create(
 
 1. `pisama_auto.init()` sets up an OpenTelemetry tracer that exports to Pisama
 2. It then patches supported LLM libraries to emit spans with `gen_ai.*` semantic conventions
-3. Pisama's detection engine analyzes the traces for 44 failure modes
+3. Pisama's detection engine analyzes the traces for 50 failure modes
 4. Results appear in your Pisama dashboard
 
 ## Configuration
