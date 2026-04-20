@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pisama-auto"
-version = "0.1.0"
+version = "0.1.1"
 description = "Zero-code auto-instrumentation for LLM applications — adds Pisama failure detection with one line"
 readme = "README.md"
 license = "MIT"
@@ -33,8 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/tn-pisama/pisama-auto"
+Homepage = "https://pisama.ai"
 Documentation = "https://docs.pisama.ai/auto-instrumentation"
+Repository = "https://github.com/tn-pisama/pisama-auto"
+Issues = "https://github.com/tn-pisama/pisama-auto/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pisama_auto"]
