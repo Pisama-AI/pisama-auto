@@ -15,7 +15,7 @@ _tracer: Optional[trace.Tracer] = None
 
 def setup_tracer(
     api_key: Optional[str] = None,
-    endpoint: str = "https://pisama-api.fly.dev/api/v1/traces/ingest",
+    endpoint: str = "https://api.pisama.ai/api/v1/traces/ingest",
     service_name: str = "pisama-auto",
 ) -> trace.Tracer:
     """Set up the OTEL tracer with Pisama exporter."""
