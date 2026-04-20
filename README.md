@@ -1,5 +1,11 @@
 # pisama-auto
 
+[![PyPI version](https://img.shields.io/pypi/v/pisama-auto.svg)](https://pypi.org/project/pisama-auto/)
+[![Python versions](https://img.shields.io/pypi/pyversions/pisama-auto.svg)](https://pypi.org/project/pisama-auto/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/tn-pisama/pisama-auto/actions/workflows/ci.yml/badge.svg)](https://github.com/tn-pisama/pisama-auto/actions/workflows/ci.yml)
+[![Downloads](https://img.shields.io/pypi/dm/pisama-auto)](https://pypistats.org/packages/pisama-auto)
+
 Zero-code auto-instrumentation for LLM applications. Add Pisama failure detection with one line.
 
 ## Quick Start
