@@ -36,7 +36,7 @@ def init(
     Args:
         api_key: Pisama API key (ps_...). Also reads PISAMA_API_KEY env var.
         endpoint: Pisama OTEL ingestion endpoint. Also reads PISAMA_ENDPOINT env var.
-            If not set, traces are generated locally but not exported.
+            If not set, defaults to the Pisama platform ingest endpoint.
         service_name: Service name for OTEL resource.
         auto_patch: If True, automatically patch all detected libraries.
     """

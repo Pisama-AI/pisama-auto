@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/pisama-auto.svg)](https://pypi.org/project/pisama-auto/)
 [![Python versions](https://img.shields.io/pypi/pyversions/pisama-auto.svg)](https://pypi.org/project/pisama-auto/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![CI](https://github.com/tn-pisama/pisama-auto/actions/workflows/ci.yml/badge.svg)](https://github.com/tn-pisama/pisama-auto/actions/workflows/ci.yml)
+[![CI](https://github.com/Pisama-AI/pisama-auto/actions/workflows/ci.yml/badge.svg)](https://github.com/Pisama-AI/pisama-auto/actions/workflows/ci.yml)
 [![Downloads](https://img.shields.io/pypi/dm/pisama-auto)](https://pypistats.org/packages/pisama-auto)
 
 Zero-code auto-instrumentation for LLM applications. Add Pisama failure detection with one line.
@@ -16,7 +16,7 @@ pip install pisama-auto
 
 ```python
 import pisama_auto
-pisama_auto.init()  # traces locally; set PISAMA_API_KEY + PISAMA_ENDPOINT to export
+pisama_auto.init()  # traces locally; set PISAMA_API_KEY to export to Pisama
 
 # All subsequent LLM calls are automatically traced
 import anthropic
@@ -54,7 +54,7 @@ pisama_auto.init(
 )
 ```
 
-Without an endpoint, traces are generated locally but not exported. Set `PISAMA_ENDPOINT` to send them to the Pisama platform.
+With an API key and no explicit endpoint, spans go to the Pisama platform (api.pisama.ai). The exporter exchanges the API key for a short-lived token automatically. Without an API key, traces are generated locally but not exported. Set `PISAMA_ENDPOINT` to target a self-hosted instance or a custom OTLP collector instead.
 
 ## Selective Patching
 
