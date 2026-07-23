@@ -8,6 +8,8 @@
 
 Zero-code auto-instrumentation for LLM applications. Add Pisama failure detection with one line.
 
+Requires Python 3.10 or newer. Python 3.10 through 3.13 are tested.
+
 ## Quick Start
 
 ```bash
