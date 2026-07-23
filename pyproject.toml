@@ -24,6 +24,7 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
     "opentelemetry-api>=1.20.0",
@@ -43,6 +44,13 @@ Homepage = "https://pisama.ai"
 Documentation = "https://docs.pisama.ai/auto-instrumentation"
 Repository = "https://github.com/Pisama-AI/pisama-auto"
 Issues = "https://github.com/Pisama-AI/pisama-auto/issues"
+Changelog = "https://github.com/Pisama-AI/pisama-auto/blob/main/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/pisama_auto"]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]

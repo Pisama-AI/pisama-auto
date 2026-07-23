@@ -8,6 +8,7 @@ import urllib.request
 from typing import Optional
 
 from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import (
     BatchSpanProcessor,
@@ -15,7 +16,6 @@ from opentelemetry.sdk.trace.export import (
     SpanExporter,
     SpanExportResult,
 )
-from opentelemetry.sdk.resources import Resource
 from opentelemetry.trace import SpanKind, format_span_id, format_trace_id
 
 logger = logging.getLogger("pisama_auto")
@@ -228,9 +228,13 @@ def setup_tracer(
             protocol = os.environ.get("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf").lower()
             try:
                 if protocol in ("grpc", "otlp/grpc"):
-                    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+                    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+                        OTLPSpanExporter,
+                    )
                 else:
-                    from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+                    from opentelemetry.exporter.otlp.proto.http.trace_exporter import (
+                        OTLPSpanExporter,
+                    )
 
                 exporter = OTLPSpanExporter(
                     endpoint=endpoint,
