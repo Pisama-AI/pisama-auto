@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0
+
 - Add protocol-level tests against the real OpenAI and Anthropic Python clients.
 - Enforce at least 96 percent statement coverage in CI.
 - Add CodeQL and pull request dependency review.
@@ -11,9 +13,6 @@
   metadata.
 - Add typed-package metadata, type checking, exporter contract coverage, and a
   built-wheel smoke test.
-
-## 0.2.0
-
 - Add automatic Anthropic and OpenAI instrumentation.
 - Add Pisama platform export with short-lived token exchange.
 - Add local-only operation when no API key is configured.
