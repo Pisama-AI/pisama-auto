@@ -40,6 +40,9 @@ def _set_genai_attrs(span, i: int) -> None:
     span.set_attribute("gen_ai.usage.input_tokens", 150 + i)
     span.set_attribute("gen_ai.usage.output_tokens", 350 + i)
     span.set_attribute("gen_ai.usage.total_tokens", 500 + 2 * i)
+    span.set_attribute("pisama.test.enabled", True)
+    span.set_attribute("pisama.test.temperature", 0.25)
+    span.set_attribute("pisama.test.tags", ["wire", "agent"])
 
 
 def _make_agent_spans() -> list:
@@ -209,3 +212,14 @@ def test_wire_scope_reports_installed_package_version(platform_stand_in):
     assert exporter.export(spans) is SpanExportResult.SUCCESS
     scope = state["requests"][-1]["body"]["resourceSpans"][0]["scopeSpans"][0]["scope"]
     assert scope == {"name": "pisama_auto", "version": __version__}
+
+
+def test_exporter_reports_connection_failure():
+    spans = _make_agent_spans()
+    exporter = PisamaPlatformExporter(
+        endpoint="http://127.0.0.1:1/api/v1/traces/ingest",
+        api_key="pisama_wire_test_key",
+        timeout=0.1,
+    )
+
+    assert exporter.export(spans) is SpanExportResult.FAILURE
