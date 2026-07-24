@@ -25,6 +25,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
 )
 from opentelemetry.trace import SpanKind
 
+from pisama_auto import __version__
 from pisama_auto._tracer import PisamaPlatformExporter
 
 INGEST_PATH = "/api/v1/traces/ingest"
@@ -186,3 +187,25 @@ def test_exporter_reports_failure_on_persistent_rejection(platform_stand_in):
     assert [r["path"] for r in state["requests"]] == [
         TOKEN_PATH, INGEST_PATH, TOKEN_PATH, INGEST_PATH,
     ]
+
+
+def test_empty_export_is_a_success_without_network(platform_stand_in):
+    base_url, state = platform_stand_in
+    exporter = PisamaPlatformExporter(
+        endpoint=f"{base_url}{INGEST_PATH}", api_key="pisama_wire_test_key"
+    )
+
+    assert exporter.export([]) is SpanExportResult.SUCCESS
+    assert state["requests"] == []
+
+
+def test_wire_scope_reports_installed_package_version(platform_stand_in):
+    base_url, state = platform_stand_in
+    spans = _make_agent_spans()
+    exporter = PisamaPlatformExporter(
+        endpoint=f"{base_url}{INGEST_PATH}", api_key="pisama_wire_test_key"
+    )
+
+    assert exporter.export(spans) is SpanExportResult.SUCCESS
+    scope = state["requests"][-1]["body"]["resourceSpans"][0]["scopeSpans"][0]["scope"]
+    assert scope == {"name": "pisama_auto", "version": __version__}

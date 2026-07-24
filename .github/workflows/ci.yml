@@ -38,6 +38,9 @@ jobs:
       - name: Lint
         run: ruff check src/ tests/
 
+      - name: Type check
+        run: mypy src/pisama_auto
+
       - name: Test
         run: pytest tests/ -q --tb=short
 
@@ -92,3 +95,9 @@ jobs:
 
       - name: Twine check
         run: python -m twine check dist/*
+
+      - name: Test the built wheel
+        run: |
+          python -m venv /tmp/wheel-smoke
+          /tmp/wheel-smoke/bin/pip install --quiet dist/*.whl
+          /tmp/wheel-smoke/bin/python -c "import pisama_auto; assert pisama_auto.__version__ == '0.2.0'"

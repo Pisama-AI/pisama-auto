@@ -19,6 +19,7 @@ from typing import Optional
 
 logger = logging.getLogger("pisama_auto")
 
+__version__ = "0.2.0"
 _initialized = False
 
 
@@ -57,10 +58,10 @@ def init(
 
     # Set up OTEL tracer
     from ._tracer import setup_tracer
-    tracer_kwargs = {"api_key": api_key, "service_name": service_name}
     if endpoint:
-        tracer_kwargs["endpoint"] = endpoint
-    setup_tracer(**tracer_kwargs)
+        setup_tracer(api_key=api_key, endpoint=endpoint, service_name=service_name)
+    else:
+        setup_tracer(api_key=api_key, service_name=service_name)
 
     # Auto-patch detected libraries
     if auto_patch:
