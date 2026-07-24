@@ -42,7 +42,7 @@ jobs:
         run: mypy src/pisama_auto
 
       - name: Test
-        run: pytest tests/ -q --tb=short --cov=pisama_auto --cov-report=term --cov-fail-under=95
+        run: pytest tests/ -q --tb=short --cov=pisama_auto --cov-report=term --cov-fail-under=96
 
   smoke:
     name: Smoke test (Python ${{ matrix.python-version }})
