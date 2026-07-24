@@ -13,8 +13,13 @@ Requires Python 3.10 or newer. Python 3.10 through 3.13 are tested.
 ## Quick Start
 
 ```bash
-pip install pisama-auto
+pip install "pisama[auto]"
 ```
+
+`pisama[auto]` is the recommended install because it keeps the CLI, local
+detectors, and auto-instrumentation on one compatible dependency path.
+`pip install pisama-auto` remains supported for applications that only need
+the instrumentation layer.
 
 ```python
 import pisama_auto
@@ -28,7 +33,7 @@ response = client.messages.create(
     max_tokens=1024,
     messages=[{"role": "user", "content": "Hello"}],
 )
-# ^ This call is automatically traced (and sent to Pisama if endpoint is configured)
+# This call is automatically traced and sent to Pisama if export is configured.
 ```
 
 ## Supported Libraries
@@ -37,6 +42,12 @@ response = client.messages.create(
 |---------|--------|---------------|
 | `anthropic` | GA | `messages.create()`, `messages.stream()` |
 | `openai` | GA | `chat.completions.create()` |
+
+## Package lifecycle
+
+`pisama-auto` is a maintained implementation package. Its public API remains
+supported, but it is not a separate product entry point. New users should
+install `pisama[auto]`. Existing direct installations continue to work.
 
 ## How It Works
 

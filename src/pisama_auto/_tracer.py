@@ -18,6 +18,8 @@ from opentelemetry.sdk.trace.export import (
 )
 from opentelemetry.trace import SpanKind, format_span_id, format_trace_id
 
+from . import __version__
+
 logger = logging.getLogger("pisama_auto")
 
 _tracer: Optional[trace.Tracer] = None
@@ -105,7 +107,7 @@ def _encode_resource_spans(spans) -> dict:
                 "resource": {"attributes": _encode_attributes(resource.attributes)},
                 "scopeSpans": [
                     {
-                        "scope": {"name": "pisama_auto", "version": "0.1.0"},
+                "scope": {"name": "pisama_auto", "version": __version__},
                         "spans": [_encode_span(s) for s in bucket],
                     }
                 ],
@@ -207,7 +209,7 @@ def setup_tracer(
     resource = Resource.create({
         "service.name": service_name,
         "pisama.sdk": "pisama-auto",
-        "pisama.sdk.version": "0.1.0",
+        "pisama.sdk.version": __version__,
     })
 
     provider = TracerProvider(resource=resource)
@@ -250,7 +252,7 @@ def setup_tracer(
         provider.add_span_processor(BatchSpanProcessor(ConsoleSpanExporter()))
 
     trace.set_tracer_provider(provider)
-    _tracer = trace.get_tracer("pisama_auto", "0.1.0")
+    _tracer = trace.get_tracer("pisama_auto", __version__)
     return _tracer
 
 
@@ -258,5 +260,5 @@ def get_tracer() -> trace.Tracer:
     """Get the Pisama tracer. Sets up a default if not initialized."""
     global _tracer
     if _tracer is None:
-        _tracer = trace.get_tracer("pisama_auto", "0.1.0")
+        _tracer = trace.get_tracer("pisama_auto", __version__)
     return _tracer
