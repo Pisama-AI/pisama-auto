@@ -1,10 +1,23 @@
-"""Pisama Auto-Instrumentation.
+"""Pisama Auto-Instrumentation -- compatibility shim.
 
-Zero-code instrumentation for LLM applications.
-Automatically patches supported libraries to emit OTEL traces
-that Pisama can analyze for failure detection.
+As of 0.3.0, ``pisama-auto`` is a thin compatibility shim over ``pisama.auto``
+(the ``auto`` submodule of the ``pisama`` package, published on PyPI as
+``pisama>=0.6.0``). The auto-instrumentation implementation itself -- OTEL
+tracer setup, the anthropic/openai monkeypatches -- now lives in
+``pisama.auto``; every module in this distribution forwards to the
+equivalent ``pisama.auto`` module so every import path this package has ever
+publicly supported (``import pisama_auto``, ``from pisama_auto import
+_tracer``, ``from pisama_auto.patches.anthropic_patch import
+_traced_stream``, ...) keeps working unchanged, forever.
 
-Usage:
+New code should prefer ``import pisama.auto`` directly. Both spellings are
+fully supported and share the same underlying state -- this shim's
+``_tracer`` and ``patches`` submodules are literal aliases for the
+corresponding ``pisama.auto`` submodules (see the module docstrings there),
+not independent copies -- so mixing ``pisama_auto`` and ``pisama.auto``
+imports in the same process is safe.
+
+Usage (unchanged):
     import pisama_auto
     pisama_auto.init(api_key="ps_...")
 
@@ -12,69 +25,26 @@ Usage:
     import anthropic
     client = anthropic.Anthropic()
     response = client.messages.create(...)  # <-- automatically traced
+
+Plain ``import pisama_auto`` (and ``import pisama_auto.patches``) has always
+been, and remains, free of the OTEL and wrapt dependencies -- neither
+imports them at module level. Reaching further -- ``pisama_auto._tracer``,
+``pisama_auto.patches.anthropic_patch``, ``.openai_patch``, or calling
+``init()`` -- has always needed OTEL/wrapt installed; before 0.3.0 that was
+guaranteed by this package's own hard dependencies, and since this package
+now depends on bare ``pisama`` rather than ``pisama[auto]`` (see
+CHANGELOG.md for why), it now needs them installed explicitly instead:
+``pip install "pisama-auto[auto]"`` (this package's own passthrough extra)
+or ``pip install "pisama[auto]"`` (identical effect, since the passthrough
+just depends on it).
+
+``__version__`` here forwards ``pisama.auto.__version__`` -- the version of
+the auto-instrumentation *implementation* actually running (also the value
+OTEL scope/resource metadata reports) -- which is deliberately decoupled
+from this shim distribution's own release version (see CHANGELOG.md). Use
+``importlib.metadata.version("pisama-auto")`` if you need the latter.
 """
 
-import logging
-from typing import Optional
+from pisama.auto import __version__, init, is_initialized, logger
 
-logger = logging.getLogger("pisama_auto")
-
-__version__ = "0.2.1"
-_initialized = False
-
-
-def init(
-    api_key: Optional[str] = None,
-    endpoint: Optional[str] = None,
-    service_name: str = "pisama-auto",
-    auto_patch: bool = True,
-) -> None:
-    """Initialize Pisama auto-instrumentation.
-
-    Sets up OTEL tracing and patches supported LLM libraries to automatically
-    emit traces that Pisama can analyze.
-
-    Args:
-        api_key: Pisama API key (ps_...). Also reads PISAMA_API_KEY env var.
-        endpoint: Pisama OTEL ingestion endpoint. Also reads PISAMA_ENDPOINT env var.
-            If not set, defaults to the Pisama platform ingest endpoint.
-        service_name: Service name for OTEL resource.
-        auto_patch: If True, automatically patch all detected libraries.
-    """
-    global _initialized
-    if _initialized:
-        logger.debug("Pisama auto-instrumentation already initialized")
-        return
-
-    import os
-    api_key = api_key or os.environ.get("PISAMA_API_KEY")
-    endpoint = endpoint or os.environ.get("PISAMA_ENDPOINT")
-
-    if not api_key:
-        logger.warning(
-            "No Pisama API key provided. Set PISAMA_API_KEY or pass api_key to init(). "
-            "Traces will be generated but not exported."
-        )
-
-    # Set up OTEL tracer
-    from ._tracer import setup_tracer
-    if endpoint:
-        setup_tracer(api_key=api_key, endpoint=endpoint, service_name=service_name)
-    else:
-        setup_tracer(api_key=api_key, service_name=service_name)
-
-    # Auto-patch detected libraries
-    if auto_patch:
-        from .patches import patch_all
-        patched = patch_all()
-        if patched:
-            logger.info(f"Pisama: auto-instrumented {', '.join(patched)}")
-        else:
-            logger.info("Pisama: initialized (no patchable libraries detected yet)")
-
-    _initialized = True
-
-
-def is_initialized() -> bool:
-    """Check if Pisama auto-instrumentation is initialized."""
-    return _initialized
+__all__ = ["__version__", "init", "is_initialized", "logger"]
