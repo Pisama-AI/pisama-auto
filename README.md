@@ -53,7 +53,8 @@ install `pisama[auto]`. Existing direct installations continue to work.
 
 1. `pisama_auto.init()` sets up an OpenTelemetry tracer that exports to Pisama
 2. It then patches supported LLM libraries to emit spans with `gen_ai.*` semantic conventions
-3. Pisama's detection engine analyzes the traces for 50 failure modes
+3. Pisama's detection engine analyzes the exported traces for failure modes. This
+   package ships traces; the detectors live in `pisama-core` and the Pisama platform
 4. Results appear in your Pisama dashboard
 
 ## Configuration
