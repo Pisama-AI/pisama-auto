@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.2.1
+
+- Correct the README description of the detection step. It previously claimed
+  Pisama analyzed traces for "50 failure modes", a number that matches no detector
+  set in the project. `pisama-auto` is an OTLP auto-instrumentation shim: it patches
+  supported LLM clients and exports spans, and implements no detectors of its own.
+  The step now describes the behavior without asserting a count.
+
 ## 0.2.0
 
 - Add protocol-level tests against the real OpenAI and Anthropic Python clients.
