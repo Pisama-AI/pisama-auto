@@ -17,6 +17,21 @@ with identical behavior:
 
 - `pisama_auto` re-exports `init`, `is_initialized`, `__version__`, `logger`
   from `pisama.auto` by reference (same function/value objects).
+  `logger` additionally carries a live-identity fix: `pisama.auto` and
+  everything reached through it log via `logging.getLogger("pisama.auto")`
+  internally, but every `pisama-auto` release from 0.1.0 through 0.2.0 used
+  `logging.getLogger("pisama_auto")` (flat, no dot) -- the name existing
+  callers configure by (`logging.getLogger("pisama_auto").setLevel(...)`).
+  This shim renames the shared logger object in place and registers it
+  under that historical name, so `logging.getLogger("pisama_auto") is
+  pisama_auto.logger` and every LogRecord any of the five internal modules
+  emits carries `.name == "pisama_auto"`, exactly as it always did.
+  `_initialized` gets the analogous fix: it's a live view onto
+  `pisama.auto._initialized` (via a `ModuleType.__class__` swap on this
+  module, since `pisama.auto` itself can't be aliased wholesale the way
+  `_tracer`/the patch leaves are -- see the module docstring), so
+  `pisama_auto._initialized = False` followed by `init()` genuinely
+  reinitializes instead of silently no-opping.
 - `pisama_auto._tracer`, `pisama_auto.patches.anthropic_patch`, and
   `pisama_auto.patches.openai_patch` are now literal aliases for their
   `pisama.auto` equivalents (a `sys.modules` swap to the same module
