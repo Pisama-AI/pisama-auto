@@ -100,4 +100,12 @@ jobs:
         run: |
           python -m venv /tmp/wheel-smoke
           /tmp/wheel-smoke/bin/pip install --quiet dist/*.whl
-          /tmp/wheel-smoke/bin/python -c "import pisama_auto; assert pisama_auto.__version__ == '0.2.0'"
+          /tmp/wheel-smoke/bin/python -c "
+          import pisama_auto
+          from importlib.metadata import version
+          packaged = version('pisama-auto')
+          assert pisama_auto.__version__ == packaged, (
+              f'__version__ {pisama_auto.__version__} != packaged {packaged}'
+          )
+          print('OK: wheel reports version', packaged)
+          "

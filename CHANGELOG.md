@@ -9,6 +9,11 @@
   set in the project. `pisama-auto` is an OTLP auto-instrumentation shim: it patches
   supported LLM clients and exports spans, and implements no detectors of its own.
   The step now describes the behavior without asserting a count.
+- Fix the built-wheel CI check, which hardcoded `assert pisama_auto.__version__ ==
+  '0.2.0'` and so failed on every version bump, requiring a workflow edit per
+  release. It now compares `__version__` against the installed distribution
+  metadata, which is the actual intent (catching drift between the two) and is
+  version-agnostic.
 
 ## 0.2.0
 
