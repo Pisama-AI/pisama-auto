@@ -19,7 +19,7 @@ from typing import Optional
 
 logger = logging.getLogger("pisama_auto")
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 _initialized = False
 
 

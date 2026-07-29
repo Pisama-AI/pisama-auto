@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pisama-auto"
-version = "0.2.0"
+version = "0.2.1"
 description = "Zero-code auto-instrumentation for LLM applications with Pisama failure detection"
 readme = "README.md"
 license = "MIT"
