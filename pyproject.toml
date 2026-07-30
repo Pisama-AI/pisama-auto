@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pisama-auto"
-version = "0.3.0"
+version = "0.3.1"
 description = "Zero-code auto-instrumentation for LLM applications with Pisama failure detection (compatibility shim over pisama.auto)"
 readme = "README.md"
 license = "MIT"
@@ -19,7 +19,6 @@ keywords = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
