@@ -18,6 +18,14 @@ directory, so ``pisama_auto.patches.anthropic_patch`` and
 do the aggressive swap themselves) rather than bypassing them.
 """
 
+import logging
+
+from pisama.auto import patches as _real_patches
 from pisama.auto.patches import _PATCHABLE, _patched, patch, patch_all  # noqa: F401
+
+# See pisama_auto/__init__.py's module docstring (`logger` bullet): rebind
+# this module's own `logger` name -- not the shared "pisama.auto"-registered
+# object -- to `logging.getLogger("pisama_auto")`.
+_real_patches.logger = logging.getLogger("pisama_auto")
 
 __all__ = ["patch", "patch_all"]

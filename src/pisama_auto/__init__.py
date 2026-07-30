@@ -51,19 +51,36 @@ every module reached through it) actually reads and writes.
 
 * ``logger`` -- ``pisama.auto`` and every submodule reached through this
   shim (``_tracer``, ``patches``, ``patches.anthropic_patch``,
-  ``patches.openai_patch``) each call ``logging.getLogger("pisama.auto")``;
-  the stdlib logging registry hands back the exact same ``Logger`` object
-  for every call with that name, so all five already share this one object.
-  But every ``pisama-auto`` release from 0.1.0 through 0.2.0 used
-  ``logging.getLogger("pisama_auto")`` (flat, no dot -- unrelated to any
-  ``"pisama"`` parent hierarchy), which is the name existing callers
-  configure by (``logging.getLogger("pisama_auto").setLevel(...)``,
-  ``.addHandler(...)``). Below, the shared object is renamed in place
-  (``Logger.debug``/``.info``/``.warning`` read ``self.name`` fresh on every
-  call, so this changes what every future ``LogRecord`` from any of the five
-  modules reports) and registered under that historical name in the stdlib
-  registry, so ``logging.getLogger("pisama_auto") is pisama_auto.logger``
-  and every record any of them emits carries ``.name == "pisama_auto"``.
+  ``patches.openai_patch``) each declare their own module-level
+  ``logger = logging.getLogger("pisama.auto")``. But every ``pisama-auto``
+  release from 0.1.0 through 0.2.0 used ``logging.getLogger("pisama_auto")``
+  (flat, no dot -- unrelated to any ``"pisama"`` parent hierarchy), which is
+  the name existing callers configure by
+  (``logging.getLogger("pisama_auto").setLevel(...)``, ``.addHandler(...)``).
+  Below, and in each of the other four modules this shim forwards, that
+  module's own ``logger`` name binding is *reassigned* -- to point at
+  ``logging.getLogger("pisama_auto")`` instead -- while the ``Logger``
+  object actually registered under ``"pisama.auto"`` is never renamed or
+  otherwise mutated. This is the same "swap what the name resolves to, not
+  what the object is" idea ``_tracer.py`` already applies to its ``_tracer``
+  singleton (see that module's docstring) -- just via a plain attribute
+  assignment on the module object here, rather than a full ``sys.modules``
+  swap. Every internal call site (``init()``, ``setup_tracer()``,
+  ``patch()``, ...) resolves ``logger`` as a global against its own
+  module's namespace at call time, so rebinding that name is enough to
+  redirect what a future ``LogRecord`` from any of them reports, without
+  needing to wrap or copy those functions. ``logging.getLogger`` is
+  idempotent -- it hands back an existing registry entry (handlers, level,
+  propagate flag and all) if a caller already configured ``"pisama_auto"``,
+  and otherwise creates and registers a fresh one -- so this works
+  regardless of import order and never clobbers a pre-existing
+  ``"pisama_auto"`` logger. A bare, non-shim ``import pisama.auto`` caller
+  is unaffected either way: nothing here ever touches the ``Logger``
+  object registered under ``"pisama.auto"`` itself, so
+  ``logging.getLogger("pisama.auto")`` (or any reference obtained from it,
+  at any time) keeps reporting ``.name == "pisama.auto"`` forever, whether
+  or not ``pisama_auto`` also happens to be imported somewhere else in the
+  process.
 * ``_initialized`` -- a plain module-level bool in ``pisama.auto``,
   *rebound* (not mutated) by ``init()``. Unlike ``_tracer``/the patch
   leaves, ``pisama.auto`` can't be swapped wholesale into
@@ -85,10 +102,17 @@ import sys
 import types
 
 import pisama.auto as _pisama_auto
-from pisama.auto import __version__, init, is_initialized, logger
+from pisama.auto import __version__, init, is_initialized
 
-logger.name = "pisama_auto"
-logging.Logger.manager.loggerDict["pisama_auto"] = logger
+# See the `logger` bullet in the module docstring above: reassign
+# pisama.auto's own module-global `logger` name binding (not the shared
+# "pisama.auto"-registered Logger object it happened to point at, which is
+# never mutated) to `logging.getLogger("pisama_auto")`. `init()`'s internal
+# `logger.debug`/`.info`/`.warning` calls resolve `logger` as a global
+# against pisama.auto's own namespace at call time, so this rebind alone
+# redirects them.
+_pisama_auto.logger = logging.getLogger("pisama_auto")
+logger = _pisama_auto.logger
 
 
 class _ShimModule(types.ModuleType):

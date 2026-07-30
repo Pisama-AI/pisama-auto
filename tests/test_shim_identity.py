@@ -11,6 +11,9 @@ would silently fail to share (see pisama_auto/_tracer.py's docstring).
 from __future__ import annotations
 
 import logging
+import subprocess
+import sys
+import textwrap
 
 import pisama.auto
 import pisama.auto._tracer
@@ -77,6 +80,14 @@ def test_logger_resolves_by_its_historical_flat_name(monkeypatch):
     (``pisama_auto.logger is pisama.auto.logger``) doesn't prove the
     *name* the caller configures by is right -- only a real emitted
     LogRecord does.
+
+    This is the "post-import" ordering: ``pisama_auto`` is already imported
+    (at this file's module level, above) by the time the handler below is
+    attached. See ``test_pre_existing_pisama_auto_logger_survives_import_
+    ordering`` below for the other ordering -- a caller who configures
+    logging *before* ``import pisama_auto`` runs -- which needs a fresh
+    interpreter to test meaningfully and is exactly the ordering the old
+    ``logger.name = "pisama_auto"`` fix silently broke.
     """
     assert pisama_auto.logger.name == "pisama_auto"
     assert logging.getLogger("pisama_auto") is pisama_auto.logger
@@ -160,3 +171,119 @@ def test_initialized_flag_round_trips_through_the_shim(monkeypatch):
         )
     finally:
         pisama.auto._initialized = previous
+
+
+def _run_isolated(script: str) -> subprocess.CompletedProcess:
+    """Run ``script`` in a brand-new interpreter with a clean logging
+    registry and no ambient Pisama env vars.
+
+    Both ordering proofs below are meaningless inside this test process:
+    pytest has already imported ``pisama_auto`` (and ``pisama.auto``) at
+    collection time, above, so there is no "before import" left to
+    observe here. A fresh subprocess is the only way to actually exercise
+    import order.
+    """
+    import os
+
+    env = dict(os.environ)
+    env.pop("PISAMA_API_KEY", None)
+    env.pop("PISAMA_ENDPOINT", None)
+    return subprocess.run(
+        [sys.executable, "-c", textwrap.dedent(script)],
+        capture_output=True,
+        text=True,
+        env=env,
+        timeout=30,
+    )
+
+
+def test_pre_existing_pisama_auto_logger_survives_import_ordering():
+    """The "before import" ordering the old fix broke: a caller who runs
+    ``logging.config.dictConfig(...)`` (or any other pre-configuration) on
+    ``"pisama_auto"`` *before* ``import pisama_auto`` -- the standard
+    configure-then-import app-startup pattern -- must keep that exact
+    Logger object, with its handlers/level/propagate untouched, and it
+    must actually capture a real internal log record once ``init()`` runs.
+
+    The old ``logging.Logger.manager.loggerDict["pisama_auto"] = logger``
+    line unconditionally overwrote whatever was already registered there,
+    silently orphaning this caller's handler.
+    """
+    result = _run_isolated(
+        """
+        import logging
+        import logging.config
+
+        captured = []
+
+        class Capture(logging.Handler):
+            def emit(self, record):
+                captured.append(record)
+
+        handler = Capture()
+        logging.config.dictConfig({
+            "version": 1,
+            "disable_existing_loggers": False,
+            "loggers": {"pisama_auto": {"level": "DEBUG", "propagate": False}},
+        })
+        pre_logger = logging.getLogger("pisama_auto")
+        pre_logger.addHandler(handler)
+        pre_handlers = list(pre_logger.handlers)
+        pre_level = pre_logger.level
+        pre_propagate = pre_logger.propagate
+        assert pre_level == logging.DEBUG
+        assert pre_propagate is False
+
+        import pisama_auto
+
+        assert pisama_auto.logger is pre_logger, "pre-configured Logger object was replaced"
+        assert pisama_auto.logger.handlers == pre_handlers, "handlers lost"
+        assert pisama_auto.logger.level == pre_level == logging.DEBUG
+        assert pisama_auto.logger.propagate is pre_propagate is False
+
+        pisama_auto._initialized = False
+        pisama_auto.init(service_name="pre-import-probe", auto_patch=False)
+
+        assert captured, "no LogRecord captured by the pre-existing handler"
+        assert all(r.name == "pisama_auto" for r in captured)
+        print("OK")
+        """
+    )
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "OK" in result.stdout
+
+
+def test_bare_pisama_auto_reference_is_never_mutated_by_shim_import():
+    """A caller who only ever does ``import pisama.auto`` (never touches
+    the shim) must be completely unaffected by ``pisama_auto`` also being
+    imported elsewhere in the same process: the old
+    ``logger.name = "pisama_auto"`` line renamed the *shared* Logger
+    object in place, so a bare caller's own reference silently started
+    reporting ``.name == "pisama_auto"`` through no action of their own.
+    """
+    result = _run_isolated(
+        """
+        import logging
+        import pisama.auto
+
+        bare_ref = pisama.auto.logger
+        bare_id_before = id(bare_ref)
+        assert bare_ref.name == "pisama.auto"
+
+        import pisama_auto  # elsewhere in the process
+
+        assert bare_ref.name == "pisama.auto", (
+            f"cross-contamination: bare_ref.name mutated to {bare_ref.name!r}"
+        )
+        assert id(bare_ref) == bare_id_before
+
+        fresh = logging.getLogger("pisama.auto")
+        assert fresh is bare_ref
+        assert fresh.name == "pisama.auto"
+        assert pisama_auto.logger is not bare_ref
+        assert pisama_auto.logger.name == "pisama_auto"
+        print("OK")
+        """
+    )
+    assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
+    assert "OK" in result.stdout

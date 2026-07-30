@@ -9,6 +9,7 @@ pisama-auto's own test suite imports directly: ``_traced_stream`` and
 drive the stream wrapper outside of a real ``patch()`` call).
 """
 
+import logging
 import sys
 
 from pisama.auto.patches import anthropic_patch as _real_anthropic_patch
@@ -20,5 +21,10 @@ from pisama.auto.patches.anthropic_patch import (  # noqa: F401 -- static-analys
     _traced_stream,
     _TracedStream,
 )
+
+# See pisama_auto/__init__.py's module docstring (`logger` bullet): rebind
+# this module's own `logger` name -- not the shared "pisama.auto"-registered
+# object -- to `logging.getLogger("pisama_auto")`.
+_real_anthropic_patch.logger = logging.getLogger("pisama_auto")
 
 sys.modules[__name__] = _real_anthropic_patch

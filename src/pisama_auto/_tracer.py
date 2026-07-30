@@ -26,6 +26,7 @@ that, since the swap below replaces this module's whole namespace before
 any caller can observe it.
 """
 
+import logging
 import sys
 
 from pisama.auto import _tracer as _real_tracer
@@ -33,5 +34,10 @@ from pisama.auto._tracer import *  # noqa: F401,F403
 from pisama.auto._tracer import (
     _tracer,  # noqa: F401 -- private, but the test suite pokes at it
 )
+
+# See pisama_auto/__init__.py's module docstring (`logger` bullet): rebind
+# this module's own `logger` name -- not the shared "pisama.auto"-registered
+# object -- to `logging.getLogger("pisama_auto")`.
+_real_tracer.logger = logging.getLogger("pisama_auto")
 
 sys.modules[__name__] = _real_tracer

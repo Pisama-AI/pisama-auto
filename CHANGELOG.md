@@ -17,16 +17,35 @@ with identical behavior:
 
 - `pisama_auto` re-exports `init`, `is_initialized`, `__version__`, `logger`
   from `pisama.auto` by reference (same function/value objects).
-  `logger` additionally carries a live-identity fix: `pisama.auto` and
-  everything reached through it log via `logging.getLogger("pisama.auto")`
-  internally, but every `pisama-auto` release from 0.1.0 through 0.2.0 used
+  `logger` additionally carries a name fix: `pisama.auto` and everything
+  reached through it log via `logging.getLogger("pisama.auto")` internally,
+  but every `pisama-auto` release from 0.1.0 through 0.2.0 used
   `logging.getLogger("pisama_auto")` (flat, no dot) -- the name existing
   callers configure by (`logging.getLogger("pisama_auto").setLevel(...)`).
-  This shim renames the shared logger object in place and registers it
-  under that historical name, so `logging.getLogger("pisama_auto") is
-  pisama_auto.logger` and every LogRecord any of the five internal modules
-  emits carries `.name == "pisama_auto"`, exactly as it always did.
-  `_initialized` gets the analogous fix: it's a live view onto
+  Each of the five internal modules' own `logger` name binding is
+  *reassigned* (not the shared `"pisama.auto"`-registered `Logger` object
+  itself, which is never renamed or otherwise mutated) to point at
+  `logging.getLogger("pisama_auto")` instead -- the same "swap what the
+  name resolves to, not what the object is" idea already applied to the
+  `_tracer` singleton below, via plain attribute assignment rather than a
+  full `sys.modules` swap. Since every internal call site resolves `logger`
+  as a global against its own module's namespace at call time, this
+  redirects what every `LogRecord` any of the five modules emits reports,
+  without needing to wrap or copy those functions. `logging.getLogger` is
+  idempotent, so this works regardless of whether a caller configures
+  `"pisama_auto"` before or after `import pisama_auto`, and never clobbers
+  a pre-existing `"pisama_auto"` logger -- and a bare, non-shim
+  `import pisama.auto` caller is completely unaffected by whether
+  `pisama_auto` also happens to be imported elsewhere in the same process,
+  since the real `"pisama.auto"`-registered object is never touched.
+  (An earlier version of this fix instead renamed the shared object in
+  place and force-registered it under `"pisama_auto"` in the stdlib
+  registry -- simple, but it silently orphaned any handler a caller had
+  already attached to a pre-existing `"pisama_auto"` logger, and mutated
+  the real `pisama.auto` object process-wide even for callers who never
+  touch this shim. See the `logger` bullet in `pisama_auto/__init__.py`'s
+  module docstring for the full mechanism.)
+  `_initialized` gets an analogous fix: it's a live view onto
   `pisama.auto._initialized` (via a `ModuleType.__class__` swap on this
   module, since `pisama.auto` itself can't be aliased wholesale the way
   `_tracer`/the patch leaves are -- see the module docstring), so
