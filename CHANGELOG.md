@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.3.1
+
+- Remove the legacy License classifier now that PEP 639 license_expression is set (setuptools>=78 forbids both together).
+
 ## 0.3.0
 
 `pisama-auto` becomes a compatibility shim over `pisama.auto`.
