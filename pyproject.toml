@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pisama-auto"
-version = "0.2.1"
-description = "Zero-code auto-instrumentation for LLM applications with Pisama failure detection"
+version = "0.3.0"
+description = "Zero-code auto-instrumentation for LLM applications with Pisama failure detection (compatibility shim over pisama.auto)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -26,15 +26,33 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
+# As of 0.3.0 this package is a thin compatibility shim over `pisama.auto`
+# (see CHANGELOG.md) -- the implementation, and its opentelemetry/wrapt
+# dependencies, now live behind pisama's own `auto` extra. This depends on
+# bare `pisama`, never on `pisama[auto]` or `pisama[agents]`: depending on an
+# extra of the package this shim itself forwards to is the shape of a real
+# dependency cycle, so it's out of bounds regardless of whether today's
+# extras happen to avoid tripping it. Use the `auto` extra below (or
+# `pisama[auto]` directly) to get a fully functional `init()`.
 dependencies = [
-    "opentelemetry-api>=1.20.0",
-    "opentelemetry-sdk>=1.20.0",
-    "opentelemetry-exporter-otlp-proto-http>=1.20.0",
-    "wrapt>=1.15.0",
+    "pisama>=0.6.0",
 ]
 
 [project.optional-dependencies]
+# Passthrough to pisama's own `auto` extra (opentelemetry-api/sdk/otlp-http,
+# wrapt) -- not a hard dependency (see above), but `pip install
+# "pisama-auto[auto]"` is the fewest-surprises way to get a fully functional
+# init(), matching what a bare `pip install pisama-auto` always did before
+# 0.3.0. Equivalent to `pip install "pisama[auto]"` directly.
+auto = [
+    "pisama[auto]>=0.6.0",
+]
 dev = [
+    # Self-referential extra (PEP 621 / pip >=21.2): pulls in the `auto`
+    # extra above so `pip install -e ".[dev]"` alone is enough to run this
+    # package's own test suite, without hand-listing opentelemetry/wrapt
+    # a second time.
+    "pisama-auto[auto]",
     "anthropic>=0.40",
     "build>=1.2",
     "openai>=1.50",
@@ -78,11 +96,8 @@ python_version = "3.10"
 warn_unused_configs = true
 check_untyped_defs = true
 no_implicit_optional = true
-
-[[tool.mypy.overrides]]
-module = [
-    "anthropic",
-    "openai",
-    "opentelemetry.exporter.otlp.proto.grpc.trace_exporter",
-]
-ignore_missing_imports = true
+# No per-module ignore_missing_imports overrides needed anymore: as a thin
+# shim, src/pisama_auto no longer imports anthropic/openai/opentelemetry.*
+# directly (those live in pisama.auto now, which ships its own py.typed).
+# tests/ still exercises those SDKs directly but isn't mypy-checked here
+# (only `mypy src/pisama_auto` runs in CI).

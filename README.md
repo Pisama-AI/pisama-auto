@@ -10,6 +10,12 @@ Zero-code auto-instrumentation for LLM applications. Add Pisama failure detectio
 
 Requires Python 3.10 or newer. Python 3.10 through 3.13 are tested.
 
+As of 0.3.0, `pisama-auto` is a compatibility shim over `pisama.auto` (part
+of the `pisama` package): the implementation lives there now, this
+distribution just forwards every import path to it, unchanged. See
+[CHANGELOG.md](CHANGELOG.md) for details. Nothing below changes for existing
+code.
+
 ## Quick Start
 
 ```bash
@@ -18,8 +24,14 @@ pip install "pisama[auto]"
 
 `pisama[auto]` is the recommended install because it keeps the CLI, local
 detectors, and auto-instrumentation on one compatible dependency path.
-`pip install pisama-auto` remains supported for applications that only need
-the instrumentation layer.
+`pip install "pisama-auto[auto]"` is equivalent and keeps the `pisama_auto`
+import name. Bare `pip install pisama-auto` still works for `import
+pisama_auto` and `import pisama_auto.patches` -- neither has ever needed
+OpenTelemetry or wrapt at import time -- but calling `init()`, or importing
+`pisama_auto._tracer` / `pisama_auto.patches.anthropic_patch` /
+`.openai_patch` directly, needs the `auto` extra installed one way or the
+other; before 0.3.0 that was guaranteed by this package's own dependencies
+instead -- see [CHANGELOG.md](CHANGELOG.md) for why.
 
 ```python
 import pisama_auto

@@ -1,70 +1,31 @@
-"""Auto-patching for LLM libraries.
+"""Auto-patching for LLM libraries -- compatibility shim.
 
-Detects installed libraries and patches them to emit OTEL spans
-with gen_ai.* semantic conventions.
+The real implementation lives in ``pisama.auto.patches``: ``patch``/
+``patch_all`` below are that module's exact function objects (not copies),
+and ``_patched``/``_PATCHABLE`` are that module's exact list/dict objects.
+``patch_all()``/``patch()`` always resolve their own ``anthropic_patch``/
+``openai_patch`` imports through the canonical ``pisama.auto.patches``
+package path regardless of which name reaches them, so a plain re-export --
+unlike ``pisama_auto/_tracer.py``, which needs the more aggressive
+``sys.modules`` swap because its ``_tracer`` singleton is *reassigned*, not
+mutated in place -- is enough here to keep ``_patched``/``_PATCHABLE``
+observably identical however a caller reaches them.
+
+Deliberately NOT doing the ``sys.modules`` swap here (unlike ``_tracer.py``)
+also keeps this package's own ``__path__`` pointing at this shim's own
+directory, so ``pisama_auto.patches.anthropic_patch`` and
+``.openai_patch`` resolve to *this shim's own* forwarder files (which each
+do the aggressive swap themselves) rather than bypassing them.
 """
 
-import importlib
 import logging
-from typing import List
 
-logger = logging.getLogger("pisama_auto")
+from pisama.auto import patches as _real_patches
+from pisama.auto.patches import _PATCHABLE, _patched, patch, patch_all  # noqa: F401
 
-# Map of library name -> patch module
-_PATCHABLE = {
-    "anthropic": ".anthropic_patch",
-    "openai": ".openai_patch",
-}
+# See pisama_auto/__init__.py's module docstring (`logger` bullet): rebind
+# this module's own `logger` name -- not the shared "pisama.auto"-registered
+# object -- to `logging.getLogger("pisama_auto")`.
+_real_patches.logger = logging.getLogger("pisama_auto")
 
-_patched: List[str] = []
-
-
-def patch_all() -> List[str]:
-    """Patch all detected LLM libraries.
-
-    Returns:
-        List of library names that were successfully patched.
-    """
-    for lib_name, patch_module in _PATCHABLE.items():
-        if lib_name in _patched:
-            continue
-        try:
-            importlib.import_module(lib_name)
-        except ImportError:
-            continue
-
-        try:
-            mod = importlib.import_module(patch_module, package="pisama_auto.patches")
-            mod.patch()
-            _patched.append(lib_name)
-            logger.debug(f"Patched {lib_name}")
-        except Exception as e:
-            logger.warning(f"Failed to patch {lib_name}: {e}")
-
-    return list(_patched)
-
-
-def patch(library: str) -> bool:
-    """Patch a specific library.
-
-    Args:
-        library: Library name (anthropic, openai)
-
-    Returns:
-        True if patched successfully
-    """
-    if library in _patched:
-        return True
-
-    if library not in _PATCHABLE:
-        logger.warning(f"Unknown library: {library}. Supported: {list(_PATCHABLE.keys())}")
-        return False
-
-    try:
-        mod = importlib.import_module(_PATCHABLE[library], package="pisama_auto.patches")
-        mod.patch()
-        _patched.append(library)
-        return True
-    except Exception as e:
-        logger.warning(f"Failed to patch {library}: {e}")
-        return False
+__all__ = ["patch", "patch_all"]

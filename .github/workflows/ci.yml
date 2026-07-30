@@ -61,18 +61,43 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
 
-      - name: Install package
+      - name: Install package (bare -- no [auto] extra)
         run: |
           python -m pip install --upgrade pip
           pip install .
+
+      - name: Import without the auto extra
+        run: |
+          python -c "
+          # 0.3.0+: pisama-auto depends on bare pisama, not pisama[auto], so
+          # this bare install has no opentelemetry/wrapt. That was already
+          # true pre-0.3.0 for plain \`import pisama_auto\` and \`import
+          # pisama_auto.patches\` (neither touches those libs at module
+          # level, then or now) -- unchanged by the shim. Reaching into
+          # \`pisama_auto._tracer\` or \`pisama_auto.patches.anthropic_patch\`/
+          # \`.openai_patch\` specifically has always needed them (those
+          # modules import opentelemetry/wrapt unconditionally); it just
+          # used to be guaranteed by pisama-auto's own hard dependencies
+          # instead of by the auto extra. That part is exercised below,
+          # after installing the extra.
+          import pisama_auto
+          import pisama_auto.patches
+          assert not pisama_auto.is_initialized()
+          print('OK: pisama_auto and pisama_auto.patches import without the auto extra')
+          "
+
+      - name: Install the auto extra
+        run: pip install ".[auto]"
 
       - name: Import and init
         run: |
           python -c "
           import pisama_auto
+          from pisama_auto import _tracer
+          from pisama_auto.patches import anthropic_patch, openai_patch
           pisama_auto.init(auto_patch=False)  # no libs installed; just verify tracer boots
           assert pisama_auto.is_initialized()
-          print('OK: pisama_auto imports and initializes')
+          print('OK: pisama_auto (incl. _tracer, patches.*) imports and initializes with the auto extra')
           "
 
   build:
@@ -101,11 +126,28 @@ jobs:
           python -m venv /tmp/wheel-smoke
           /tmp/wheel-smoke/bin/pip install --quiet dist/*.whl
           /tmp/wheel-smoke/bin/python -c "
+          import re
           import pisama_auto
           from importlib.metadata import version
+
+          # 0.3.0+: __version__ forwards pisama.auto's implementation version
+          # (also what OTEL scope/resource metadata reports), which is
+          # deliberately decoupled from this distribution's own release
+          # version -- see CHANGELOG.md 0.3.0. Check the packaging side
+          # (installed metadata matches what pyproject.toml declares) and
+          # the forwarding side (__version__ really did come from
+          # pisama.auto, not some stale/blank default) separately, instead
+          # of asserting the two are equal.
           packaged = version('pisama-auto')
-          assert pisama_auto.__version__ == packaged, (
-              f'__version__ {pisama_auto.__version__} != packaged {packaged}'
+          declared = re.search(
+              r'^version = \"(.*)\"', open('pyproject.toml').read(), re.MULTILINE
+          ).group(1)
+          assert packaged == declared, f'packaged {packaged} != pyproject.toml {declared}'
+
+          import pisama.auto
+          assert pisama_auto.__version__ == pisama.auto.__version__, (
+              f'__version__ {pisama_auto.__version__} != pisama.auto.__version__ '
+              f'{pisama.auto.__version__} -- forwarding is broken'
           )
-          print('OK: wheel reports version', packaged)
+          print('OK: distribution version', packaged, '| forwarded __version__', pisama_auto.__version__)
           "
