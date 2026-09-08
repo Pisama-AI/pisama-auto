@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 0.3.2
+
+- Point distribution documentation metadata to the maintained canonical README.
+- Match quick-start and selective-patching imports to the recommended
+  `pisama[auto]` installation. Existing `pisama_auto` imports remain available
+  through `pisama-auto[auto]`; runtime source and dependencies are unchanged.
+- Update the real-SDK HTTP contract test to omit Anthropic's removed
+  `temperature` parameter, retaining response and span assertions and checking
+  the transmitted request fields. No instrumentation behavior is changed.
+
 ## 0.3.1
 
 - Remove the legacy License classifier now that PEP 639 license_expression is set (setuptools>=78 forbids both together).
