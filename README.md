@@ -34,7 +34,7 @@ other; before 0.3.0 that was guaranteed by this package's own dependencies
 instead -- see [CHANGELOG.md](CHANGELOG.md) for why.
 
 ```python
-import pisama_auto
+import pisama.auto as pisama_auto
 pisama_auto.init()  # traces locally; set PISAMA_API_KEY to export to Pisama
 
 # All subsequent LLM calls are automatically traced
@@ -85,9 +85,9 @@ With an API key and no explicit endpoint, spans go to the Pisama platform (api.p
 ## Selective Patching
 
 ```python
-import pisama_auto
+import pisama.auto as pisama_auto
 pisama_auto.init(auto_patch=False)  # don't auto-patch
 
-from pisama_auto.patches import patch
+from pisama.auto.patches import patch
 patch("anthropic")  # only patch anthropic
 ```

@@ -127,13 +127,16 @@ def test_real_openai_and_anthropic_clients_emit_semantic_spans(sdk_server, captu
         model="claude-sonnet-4-6",
         messages=[{"role": "user", "content": "Capital of France?"}],
         max_tokens=8,
-        temperature=0,
         system="Answer with one city.",
     )
 
     assert openai_response.choices[0].message.content == "Paris"
     assert anthropic_response.content[0].text == "Paris"
     assert len(requests) == 2
+    assert requests[1][0].endswith("/messages")
+    assert requests[1][1]["max_tokens"] == 8
+    assert requests[1][1]["system"] == "Answer with one city."
+    assert "temperature" not in requests[1][1]
 
     spans = captured_spans.get_finished_spans()
     assert [span.name for span in spans] == [
@@ -146,6 +149,8 @@ def test_real_openai_and_anthropic_clients_emit_semantic_spans(sdk_server, captu
     assert openai_attrs["gen_ai.response.finish_reason"] == "stop"
     assert anthropic_attrs["gen_ai.usage.total_tokens"] == 10
     assert anthropic_attrs["gen_ai.request.has_system"] is True
+    assert anthropic_attrs["gen_ai.request.max_tokens"] == 8
+    assert "gen_ai.request.temperature" not in anthropic_attrs
 
 
 def test_anthropic_stream_wrapper_ends_span_on_real_file_iteration(tmp_path, captured_spans):

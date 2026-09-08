@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pisama-auto"
-version = "0.3.1"
+version = "0.3.2"
 description = "Zero-code auto-instrumentation for LLM applications with Pisama failure detection (compatibility shim over pisama.auto)"
 readme = "README.md"
 license = "MIT"
@@ -64,7 +64,7 @@ dev = [
 
 [project.urls]
 Homepage = "https://pisama.ai"
-Documentation = "https://docs.pisama.ai/auto-instrumentation"
+Documentation = "https://github.com/Pisama-AI/pisama-auto/blob/main/README.md"
 Repository = "https://github.com/Pisama-AI/pisama-auto"
 Issues = "https://github.com/Pisama-AI/pisama-auto/issues"
 Changelog = "https://github.com/Pisama-AI/pisama-auto/blob/main/CHANGELOG.md"
